@@ -1366,7 +1366,7 @@ func createBlockSession(
     "triggeredBy": triggeredBy,
     "unblockedBy": NSNull(),
     "applicationCount": selection.applicationTokens.count,
-    "categoryCount": selection.categoryTokens.count,
+    "categoryCount": selection.categoryTokens.count
   ]
 
   sessions.append(session)
