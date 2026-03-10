@@ -83,6 +83,7 @@ const mockModule: ReactNativeDeviceActivityNativeModule | null = {
   removeSelectionFromWhitelistAndUpdateBlock: warnFn,
   renameActivitySelection: warnFn,
   resetBlocks: warnFn,
+  getBlockSessions: warnFnArray,
   clearWhitelist: warnFn,
   unblockSelection: warnFn,
   revokeAuthorization: warnFn,

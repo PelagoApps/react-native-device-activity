@@ -506,6 +506,7 @@ export type ReactNativeDeviceActivityNativeModule = {
   disableBlockAllMode: (triggeredBy?: string) => void;
 
   resetBlocks: (triggeredBy?: string) => void;
+  getBlockSessions: () => Record<string, unknown>[];
 
   removeSelectionFromWhitelistAndUpdateBlock: (
     familyActivitySelection: ActivitySelectionInput,
@@ -699,10 +700,23 @@ export type OnDeviceActivityDetectedListener = (event: {
   activityName: string;
 }) => void;
 
+export type BlockSession = {
+  id: string;
+  selectionId: string;
+  selectionToken: string;
+  blockedAt: number;
+  unblockedAt: number | null;
+  triggeredBy: string;
+  unblockedBy: string | null;
+  applicationCount: number;
+  categoryCount: number;
+};
+
 export type EventListenerMap = {
   onAuthorizationStatusChange: OnAuthorizationStatusChange;
   onDeviceActivityDetected: OnDeviceActivityDetectedListener;
   onDeviceActivityMonitorEvent: (
     event: DeviceActivityMonitorEventPayload,
   ) => void;
+  onBlockSessionsChanged: () => void;
 };

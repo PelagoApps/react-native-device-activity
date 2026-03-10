@@ -14,6 +14,7 @@ import {
   ActivitySelectionWithMetadata,
   AuthorizationStatus,
   AuthorizationStatusType,
+  BlockSession,
   CallbackEventName,
   CallbackName,
   DeviceActivityEvent,
@@ -592,6 +593,32 @@ export function onDeviceActivityMonitorEvent(
     return { remove: () => {} };
   }
   return emitter.addListener("onDeviceActivityMonitorEvent", listener);
+}
+
+export function getBlockSessions(): BlockSession[] {
+  const sessions =
+    ReactNativeDeviceActivityModule?.getBlockSessions() ?? [];
+
+  return sessions.map((session: Record<string, unknown>) => ({
+    id: session.id as string,
+    selectionId: session.selectionId as string,
+    selectionToken: session.selectionToken as string,
+    blockedAt: session.blockedAt as number,
+    unblockedAt: (session.unblockedAt as number) ?? null,
+    triggeredBy: session.triggeredBy as string,
+    unblockedBy: (session.unblockedBy as string) ?? null,
+    applicationCount: session.applicationCount as number,
+    categoryCount: session.categoryCount as number,
+  }));
+}
+
+export function onBlockSessionsChanged(
+  listener: () => void,
+): EventSubscription {
+  if (!emitter) {
+    return { remove: () => {} };
+  }
+  return emitter.addListener("onBlockSessionsChanged", listener);
 }
 
 export const SHIELD_ACTIONS_KEY = "shieldActions";

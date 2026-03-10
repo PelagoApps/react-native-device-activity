@@ -195,8 +195,12 @@ class NativeEventObserver {
   let notificationCenter = CFNotificationCenterGetDarwinNotifyCenter()
   private weak var module: BaseModule?
   private var observer: UnsafeRawPointer?
+  private var eventNameMapping: [String: String] = [:]
 
-  func registerListener(name: String) {
+  func registerListener(name: String, jsEventName: String? = nil) {
+    if let jsEventName = jsEventName {
+      eventNameMapping[name] = jsEventName
+    }
     let notificationName = name as CFString
     guard let observer else {
       return
@@ -218,11 +222,16 @@ class NativeEventObserver {
           guard let module = nativeObserver.module else {
             return
           }
-          module.sendEvent(
-            "onDeviceActivityMonitorEvent" as String,
-            [
-              "callbackName": name.rawValue
-            ])
+          let darwinName = name.rawValue as String
+          if let customEventName = nativeObserver.eventNameMapping[darwinName] {
+            module.sendEvent(customEventName, [:])
+          } else {
+            module.sendEvent(
+              "onDeviceActivityMonitorEvent" as String,
+              [
+                "callbackName": name.rawValue
+              ])
+          }
         }
       },
       notificationName,
@@ -239,6 +248,7 @@ class NativeEventObserver {
     registerListener(name: "intervalWillStartWarning")
     registerListener(name: "intervalWillEndWarning")
     registerListener(name: "eventWillReachThresholdWarning")
+    registerListener(name: "blockSessionsChanged", jsEventName: "onBlockSessionsChanged")
   }
 
   func unregister() {
@@ -728,10 +738,12 @@ public class ReactNativeDeviceActivityModule: Module {
       let triggeredBy = triggeredBy ?? "blockSelection called manually"
 
       let activitySelection = parseActivitySelectionInput(input: familyActivitySelection)
+      let selectionId = familyActivitySelection["activitySelectionId"] as? String
 
       blockSelectedApps(
         blockSelection: activitySelection,
-        triggeredBy: triggeredBy
+        triggeredBy: triggeredBy,
+        selectionId: selectionId
       )
 
       let blockingAllModeEnabled = isBlockingAllModeEnabled()
@@ -743,6 +755,10 @@ public class ReactNativeDeviceActivityModule: Module {
 
     Function("resetBlocks") { (triggeredBy: String?) in
       resetBlocks(triggeredBy: triggeredBy ?? "resetBlocks called manually")
+    }
+
+    Function("getBlockSessions") { () -> [[String: Any]] in
+      return getBlockSessions()
     }
 
     Function("isBlockingAllModeEnabled") { () -> Bool in
@@ -850,7 +866,8 @@ public class ReactNativeDeviceActivityModule: Module {
       "onDeviceActivityMonitorEvent",
       // "onManagedStoreWillChange",
       "onDeviceActivityDetected",
-      "onAuthorizationStatusChange"
+      "onAuthorizationStatusChange",
+      "onBlockSessionsChanged"
     )
 
     // Enables the module to be used as a native view. Definition components that are accepted as part of the

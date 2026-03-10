@@ -24,6 +24,7 @@ let FAMILY_ACTIVITY_SELECTION_ID_KEY = "familyActivitySelectionIds"
 let WEB_CONTENT_FILTER_POLICY_LAST_UPDATE_KEY = "lastWebContentFilterPolicyUpdate"
 let WEB_CONTENT_FILTER_POLICY_LAST_ERROR_KEY = "lastWebContentFilterPolicyError"
 let WEB_CONTENT_FILTER_POLICY_MAX_DOMAINS = 50
+let BLOCK_SESSIONS_KEY = "blockSessions"
 
 let appGroup =
   Bundle.main.object(forInfoDictionaryKey: "REACT_NATIVE_DEVICE_ACTIVITY_APP_GROUP") as? String
@@ -1321,10 +1322,64 @@ func clearWhitelist() {
     .removeObject(forKey: CURRENT_WHITELIST_KEY)
 }
 
+func getBlockSessions() -> [[String: Any]] {
+  return userDefaults?.array(forKey: BLOCK_SESSIONS_KEY) as? [[String: Any]] ?? []
+}
+
+func saveBlockSessions(_ sessions: [[String: Any]]) {
+  userDefaults?.set(sessions, forKey: BLOCK_SESSIONS_KEY)
+}
+
+func notifyBlockSessionsChanged() {
+  notifyAppWithName(name: "blockSessionsChanged")
+}
+
+func closeActiveBlockSessions(unblockedBy: String) {
+  var sessions = getBlockSessions()
+  let now = Date().timeIntervalSince1970 * 1000
+
+  for i in sessions.indices {
+    if sessions[i]["unblockedAt"] is NSNull || sessions[i]["unblockedAt"] == nil {
+      sessions[i]["unblockedAt"] = now
+      sessions[i]["unblockedBy"] = unblockedBy
+    }
+  }
+
+  saveBlockSessions(sessions)
+}
+
+@available(iOS 15.0, *)
+func createBlockSession(
+  selectionId: String?,
+  selection: FamilyActivitySelection,
+  triggeredBy: String
+) {
+  var sessions = getBlockSessions()
+  let now = Date().timeIntervalSince1970 * 1000
+
+  let session: [String: Any] = [
+    "id": UUID().uuidString,
+    "selectionId": selectionId ?? "unknown",
+    "selectionToken": serializeFamilyActivitySelection(selection: selection),
+    "blockedAt": now,
+    "unblockedAt": NSNull(),
+    "triggeredBy": triggeredBy,
+    "unblockedBy": NSNull(),
+    "applicationCount": selection.applicationTokens.count,
+    "categoryCount": selection.categoryTokens.count,
+  ]
+
+  sessions.append(session)
+  saveBlockSessions(sessions)
+}
+
 @available(iOS 15.0, *)
 func resetBlocks(triggeredBy: String) {
   userDefaults?
     .removeObject(forKey: CURRENT_BLOCKLIST_KEY)
+
+  closeActiveBlockSessions(unblockedBy: triggeredBy)
+  notifyBlockSessionsChanged()
 
   updateBlock(triggeredBy: triggeredBy)
 }
@@ -1405,13 +1460,23 @@ func removeSelectionFromWhitelistAndUpdateBlock(
 @available(iOS 15.0, *)
 func blockSelectedApps(
   blockSelection: FamilyActivitySelection,
-  triggeredBy: String
+  triggeredBy: String,
+  selectionId: String? = nil
 ) {
   let currentBlocklist = getCurrentBlocklist()
 
   let updatedBlocklist = union(blockSelection, currentBlocklist)
 
   saveCurrentBlocklist(blocklist: updatedBlocklist)
+
+  // Close any active session before creating a new one
+  closeActiveBlockSessions(unblockedBy: "new block session: \(triggeredBy)")
+  createBlockSession(
+    selectionId: selectionId,
+    selection: updatedBlocklist,
+    triggeredBy: triggeredBy
+  )
+  notifyBlockSessionsChanged()
 
   updateBlock(triggeredBy: triggeredBy)
 }
@@ -1493,6 +1558,9 @@ func unblockSelection(
   let updatedBlocklist = difference(currentBlocklist, removeSelection)
 
   saveCurrentBlocklist(blocklist: updatedBlocklist)
+
+  closeActiveBlockSessions(unblockedBy: triggeredBy)
+  notifyBlockSessionsChanged()
 
   updateBlock(triggeredBy: triggeredBy)
 }
