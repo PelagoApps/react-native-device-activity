@@ -233,7 +233,7 @@ export type NotificationPayload = {
   categoryIdentifier?: string;
   badge?: number;
   userInfo?: Record<string, any>;
-  interruptionLevel?: "active" | "critical" | "passive";
+  interruptionLevel?: "active" | "critical" | "passive" | "timeSensitive";
   targetContentIdentifier?: string;
   launchImageName?: string;
   identifier?: string;
