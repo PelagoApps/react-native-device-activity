@@ -96,6 +96,9 @@ struct PerAppUsageView: View {
             Text(app.displayName)
               .lineLimit(1)
             Spacer()
+            Text(formatPercentage(app.duration))
+              .foregroundColor(.secondary)
+              .monospacedDigit()
             Text(formatDuration(app.duration))
               .foregroundColor(.secondary)
               .monospacedDigit()
@@ -110,6 +113,19 @@ struct PerAppUsageView: View {
         }
       }
     }
+  }
+
+  private var totalDuration: TimeInterval {
+    appUsages.reduce(0) { $0 + $1.duration }
+  }
+
+  private func formatPercentage(_ duration: TimeInterval) -> String {
+    guard totalDuration > 0 else { return "0%" }
+    let percentage = (duration / totalDuration) * 100
+    if percentage < 1 {
+      return "<1%"
+    }
+    return "\(Int(percentage))%"
   }
 
   private func formatDuration(_ duration: TimeInterval) -> String {

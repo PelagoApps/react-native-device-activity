@@ -78,7 +78,10 @@ export type DeviceActivitySelectionSheetViewPersistedProps =
 
 export type DeviceActivityLabelListViewProps = PropsWithChildren<{
   style?: StyleProp<ViewStyle>;
-  familyActivitySelectionId: string;
+  /** Look up a persisted FamilyActivitySelection by ID from UserDefaults */
+  familyActivitySelectionId?: string;
+  /** Raw FamilyActivitySelection as a base64-encoded string */
+  familyActivitySelection?: string | null;
 }>;
 
 export type DeviceActivityReportViewProps = {
