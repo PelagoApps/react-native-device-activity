@@ -727,6 +727,17 @@ public class ReactNativeDeviceActivityModule: Module {
       (familyActivitySelection: [String: Any], triggeredBy: String?) in
       let triggeredBy = triggeredBy ?? "blockSelection called manually"
 
+      let activitySelectionId = familyActivitySelection["activitySelectionId"] as? String
+
+      if activitySelectionId != nil {
+        updateShield(
+          shieldId: activitySelectionId,
+          triggeredBy: triggeredBy,
+          activitySelectionId: activitySelectionId
+        )
+        usleep(50_000)
+      }
+
       let activitySelection = parseActivitySelectionInput(input: familyActivitySelection)
 
       blockSelectedApps(
@@ -955,10 +966,23 @@ public class ReactNativeDeviceActivityLabelListModule: Module {
       Events("onContentSizeChange")
 
       Prop("familyActivitySelectionId") {
-        (view: ReactNativeDeviceActivityLabelListView, prop: String) in
-        view.model.familyActivitySelectionId = prop
-        view.model.refreshSelection()
-        view.model.startObserving()
+        (view: ReactNativeDeviceActivityLabelListView, prop: String?) in
+        if let id = prop {
+          view.model.familyActivitySelectionId = id
+          view.model.refreshSelection()
+          view.model.startObserving()
+        }
+      }
+
+      Prop("familyActivitySelection") {
+        (view: ReactNativeDeviceActivityLabelListView, prop: String?) in
+        if let selectionStr = prop {
+          let selection = deserializeFamilyActivitySelection(
+            familyActivitySelectionStr: selectionStr)
+          view.model.activitySelection = selection
+        } else {
+          view.model.activitySelection = FamilyActivitySelection()
+        }
       }
     }
   }
